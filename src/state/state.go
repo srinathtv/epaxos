@@ -75,36 +75,36 @@ func IsRead(command *Command) bool {
 }
 
 func (c *Command) Execute(st *State) Value {
-	//fmt.Printf("Executing (%d, %d)\n", c.K, c.V)
+  //fmt.Printf("Executing (%d, %d)\n", c.K, c.V)
 
-	//var key, value [8]byte
+  //var key, value [8]byte
 
-	//    st.mutex.Lock()
-	//    defer st.mutex.Unlock()
+  //    st.mutex.Lock()
+  //    defer st.mutex.Unlock()
 
-	switch c.Op {
-	case PUT:
-		/*
-		   binary.LittleEndian.PutUint64(key[:], uint64(c.K))
-		   binary.LittleEndian.PutUint64(value[:], uint64(c.V))
-		   st.DB.Set(key[:], value[:], nil)
-		*/
+  switch c.Op {
+    case PUT:
+      /*
+         binary.LittleEndian.PutUint64(key[:], uint64(c.K))
+         binary.LittleEndian.PutUint64(value[:], uint64(c.V))
+         st.DB.Set(key[:], value[:], nil)
+       */
 
-		//st.Store[c.K] = c.V
-    
-    // STVS: edits to get an incrementer app
-    if val, present := st.Store[c.K]; present {
-      st.Store[c.K] = val + 1
-		} else {
-      st.Store[c.K] = 0
-    }
-    return st.Store[c.K]
+      //st.Store[c.K] = c.V
 
-	case GET:
-		if val, present := st.Store[c.K]; present {
-			return val
-		}
-	}
+      // STVS: edits to get an incrementer app
+      if val, present := st.Store[c.K]; present {
+        st.Store[c.K] = val + 1
+      } else {
+        st.Store[c.K] = 1 
+      }
+      return st.Store[c.K]
 
-	return NIL
+    case GET:
+        if val, present := st.Store[c.K]; present {
+          return val
+        }
+  }
+
+  return NIL
 }
