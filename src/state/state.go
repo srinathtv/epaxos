@@ -90,8 +90,15 @@ func (c *Command) Execute(st *State) Value {
 		   st.DB.Set(key[:], value[:], nil)
 		*/
 
-		st.Store[c.K] = c.V
-		return c.V
+		//st.Store[c.K] = c.V
+    
+    // STVS: edits to get an incrementer app
+    if val, present := st.Store[c.K]; present {
+      st.Store[c.K] = val + 1
+		} else {
+      st.Store[c.K] = 0
+    }
+    return st.Store[c.K]
 
 	case GET:
 		if val, present := st.Store[c.K]; present {
