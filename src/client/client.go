@@ -133,6 +133,7 @@ func main() {
 	args := genericsmrproto.Propose{id, state.Command{state.PUT, 0, 0}, 0}
 
 	before_total := time.Now()
+	before_total_nano := before_total.UnixNano()
 
 	for j := 0; j < *rounds; j++ {
 
@@ -227,6 +228,7 @@ func main() {
 	}
 
 	after_total := time.Now()
+	after_total_nano := after_total.UnixNano()
 	fmt.Printf("Test took %v\n", after_total.Sub(before_total))
 
 	s := 0
@@ -235,6 +237,8 @@ func main() {
 	}
 
 	fmt.Printf("Successful: %d\n", s)
+	fmt.Printf("Avg Latency per req: %v ms\n", float64(after_total_nano - before_total_nano)/float64(1000*1000*s))
+	fmt.Printf("Throughput: %v reqs/s\n", float64(s*1000*1000*1000)/float64(after_total_nano - before_total_nano))
 
 	for _, client := range servers {
 		if client != nil {
