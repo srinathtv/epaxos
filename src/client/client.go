@@ -45,6 +45,10 @@ func main() {
 	randObj := rand.New(rand.NewSource(42))
 	zipf := rand.NewZipf(randObj, *s, *v, uint64(*reqsNb / *rounds + *eps))
 
+  // STVS: set conflicts to 100 to simulate an incrementer app
+  *conflicts = 100
+  
+
 	if *conflicts > 100 {
 		log.Fatalf("Conflicts percentage must be between 0 and 100.\n")
 	}
