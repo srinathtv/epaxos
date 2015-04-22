@@ -22,7 +22,7 @@ const FALSE = uint8(0)
 const DS = 5
 const ADAPT_TIME_SEC = 10
 
-const MAX_BATCH = 1
+const MAX_BATCH = 1000
 
 const COMMIT_GRACE_PERIOD = 10 * 1e9 //10 seconds
 
@@ -314,7 +314,7 @@ func (r *Replica) run() {
 			r.handlePropose(propose)
 			//deactivate new proposals channel to prioritize the handling of other protocol messages,
 			//and to allow commands to accumulate for batching
-			//onOffProposeChan = nil
+			onOffProposeChan = nil
 			break
 
 		case <-fastClockChan:
