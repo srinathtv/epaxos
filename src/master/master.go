@@ -49,6 +49,7 @@ func main() {
 		log.Fatal("Master listen error:", err)
 	}
 
+	log.Printf("[[READY]]\n")
 	go master.run()
 
 	http.Serve(l, nil)

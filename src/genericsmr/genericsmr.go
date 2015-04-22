@@ -147,6 +147,7 @@ func (r *Replica) ConnectToPeers() {
 	}
 	<-done
 	log.Printf("Replica id: %d. Done connecting to peers\n", r.Id)
+	log.Printf("[[READY]]")
 
 	for rid, reader := range r.PeerReaders {
 		if int32(rid) == r.Id {

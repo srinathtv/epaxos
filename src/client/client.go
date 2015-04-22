@@ -239,6 +239,7 @@ func main() {
 	fmt.Printf("Successful: %d\n", s)
 	fmt.Printf("Avg Latency per req: %v ms\n", float64(after_total_nano - before_total_nano)/float64(1000*1000*s))
 	fmt.Printf("Throughput: %v reqs/s\n", float64(s*1000*1000*1000)/float64(after_total_nano - before_total_nano))
+	fmt.Printf("[[DONE]]\n")
 
 	for _, client := range servers {
 		if client != nil {
