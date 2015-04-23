@@ -17,7 +17,7 @@ const CHAN_BUFFER_SIZE = 200000
 const TRUE = uint8(1)
 const FALSE = uint8(0)
 
-const MAX_BATCH = 1000
+const MAX_BATCH = 1
 
 type Replica struct {
 	*genericsmr.Replica // extends a generic Paxos replica
@@ -197,7 +197,7 @@ func (r *Replica) run() {
 			dlog.Printf("Proposal with op %d\n", propose.Command.Op)
 			r.handlePropose(propose)
 			//deactivate the new proposals channel to prioritize the handling of protocol messages
-			onOffProposeChan = nil
+			//onOffProposeChan = nil
 			break
 
 		case prepareS := <-r.prepareChan:
