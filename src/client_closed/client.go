@@ -17,17 +17,22 @@ import (
 
 var masterAddr *string = flag.String("maddr", "", "Master address. Defaults to localhost")
 var masterPort *int = flag.Int("mport", 7087, "Master port.  Defaults to 7077.")
-var procs *int = flag.Int("p", 2, "GOMAXPROCS. Defaults to 2")
+var numClients *int = flag.Int("q", 1, "Number of client threads.  Defaults to 1.")
+//var duration *int = flag.Int("d", 60, "Duration of the experiment in seconds.  Defaults to 60.")
 
 func main() {
 	flag.Parse()
 
-	runtime.GOMAXPROCS(*procs)
-	
-  run_one_client(0, *masterAddr, *masterPort)
+	runtime.GOMAXPROCS(*numClients+1)
+	for i:=0; i<*numClients; i++ {
+    go run_one_client(i, *numClients, *masterAddr, *masterPort)
+  }
+
+  time.Sleep(60 * time.Second)
+	fmt.Printf("[[DONE]]\n")
 }
 
-func run_one_client(clientId int, masterAddr string, masterPort int) {
+func run_one_client(clientId int, numClients int, masterAddr string, masterPort int) {
   
   master, err := rpc.DialHTTP("tcp", fmt.Sprintf("%s:%d", masterAddr, masterPort))
 	if err != nil {
@@ -75,7 +80,7 @@ func run_one_client(clientId int, masterAddr string, masterPort int) {
   put[0] = true
  
   
-  var id int32 = 0
+  var id int32 = int32(clientId);
 	args := genericsmrproto.Propose{id, state.Command{state.PUT, 0, 0}, 0}
 
 	reqReply := new(genericsmrproto.ProposeReplyTS)
@@ -87,7 +92,7 @@ func run_one_client(clientId int, masterAddr string, masterPort int) {
 		args.Command.V = state.Value(0)
 		writers[leader].WriteByte(genericsmrproto.PROPOSE)
 		args.Marshal(writers[leader])
-		id++
+		id = id + int32(numClients);
     writers[leader].Flush()
     
 	  start := time.Now()
@@ -112,9 +117,6 @@ func run_one_client(clientId int, masterAddr string, masterPort int) {
       fmt.Printf("#req%v %v %v %v\n", id, start_nano/(1000.0*1000), end_nano/(1000.0*1000), clientId) 
     }
   
-    if id > 1000 {
-      break
-    }
   }
 
 	for _, client := range servers {
@@ -123,6 +125,4 @@ func run_one_client(clientId int, masterAddr string, masterPort int) {
 		}
 	}
 	master.Close()
-
-	fmt.Printf("[[DONE]]\n")
 }
