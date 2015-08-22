@@ -13,6 +13,8 @@ import (
 	"runtime"
 	"state"
 	"time"
+  "os"
+  "path/filepath"
 )
 
 var masterAddr *string = flag.String("maddr", "", "Master address. Defaults to localhost")
@@ -22,6 +24,12 @@ var numClients *int = flag.Int("q", 1, "Number of client threads.  Defaults to 1
 
 func main() {
 	flag.Parse()
+  
+  fname := filepath.Join(os.TempDir(), "stdout")
+  fmt.Println("stdout is now set to", fname)
+  old := os.Stdout
+  temp, _ := os.Create(fname)
+  os.Stdout = temp
 
 	runtime.GOMAXPROCS(*numClients+1)
 	for i:=0; i<*numClients; i++ {
@@ -29,6 +37,11 @@ func main() {
   }
 
   time.Sleep(60 * time.Second)
+  
+  temp.Close()
+  os.Stdout = old
+
+
 	fmt.Printf("[[DONE]]\n")
 }
 
