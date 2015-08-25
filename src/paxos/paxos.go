@@ -17,7 +17,8 @@ const CHAN_BUFFER_SIZE = 200000
 const TRUE = uint8(1)
 const FALSE = uint8(0)
 
-const MAX_BATCH = 1
+//const MAX_BATCH = 1
+var MAX_BATCH = 1
 
 type Replica struct {
 	*genericsmr.Replica // extends a generic Paxos replica
@@ -67,7 +68,7 @@ type LeaderBookkeeping struct {
 	nacks           int
 }
 
-func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, dreply bool, durable bool) *Replica {
+func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, dreply bool, durable bool, batch_size int) *Replica {
 	r := &Replica{genericsmr.NewReplica(id, peerAddrList, thrifty, exec, dreply),
 		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
 		make(chan fastrpc.Serializable, genericsmr.CHAN_BUFFER_SIZE),
@@ -93,6 +94,7 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool, dreply b
 	r.commitShortRPC = r.RegisterRPC(new(paxosproto.CommitShort), r.commitShortChan)
 	r.prepareReplyRPC = r.RegisterRPC(new(paxosproto.PrepareReply), r.prepareReplyChan)
 	r.acceptReplyRPC = r.RegisterRPC(new(paxosproto.AcceptReply), r.acceptReplyChan)
+  MAX_BATCH = batch_size
 
 	go r.run()
 

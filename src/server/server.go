@@ -33,6 +33,7 @@ var exec = flag.Bool("exec", false, "Execute commands.")
 var dreply = flag.Bool("dreply", false, "Reply to client only after command has been executed.")
 var beacon = flag.Bool("beacon", false, "Send beacons to other replicas to compare their relative speeds.")
 var durable = flag.Bool("durable", false, "Log to a stable store (i.e., a file in the current dir).")
+var batch_size = flag.Int("batch_size", 1, "Number of requests to batch")
 
 func main() {
 	flag.Parse()
@@ -69,7 +70,7 @@ func main() {
 		rpc.Register(rep)
 	} else {
 		log.Println("Starting classic Paxos replica...")
-		rep := paxos.NewReplica(replicaId, nodeList, *thrifty, *exec, *dreply, *durable)
+		rep := paxos.NewReplica(replicaId, nodeList, *thrifty, *exec, *dreply, *durable, *batch_size)
 		rpc.Register(rep)
 	}
 
