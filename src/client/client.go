@@ -14,6 +14,8 @@ import (
 	"runtime"
 	"state"
 	"time"
+  "os"
+  "path/filepath"
 )
 
 var masterAddr *string = flag.String("maddr", "", "Master address. Defaults to localhost")
@@ -36,9 +38,16 @@ var successful []int
 
 var rarray []int
 var rsp []bool
+var timestamps map[int32]int64
 
 func main() {
 	flag.Parse()
+  fname := filepath.Join(os.TempDir(), "stdout")
+  fmt.Println("stdout is now set to", fname)
+  old := os.Stdout
+  temp, _ := os.Create(fname)
+  os.Stdout = temp
+
 
 	runtime.GOMAXPROCS(*procs)
 
@@ -69,15 +78,15 @@ func main() {
 	readers := make([]*bufio.Reader, N)
 	writers := make([]*bufio.Writer, N)
 
-	rarray = make([]int, *reqsNb / *rounds + *eps)
-	karray := make([]int64, *reqsNb / *rounds + *eps)
-	put := make([]bool, *reqsNb / *rounds + *eps)
+	rarray = make([]int, *reqsNb + *eps)
+	karray := make([]int64, *reqsNb + *eps)
+	put := make([]bool, *reqsNb + *eps)
 	perReplicaCount := make([]int, N)
-	test := make([]int, *reqsNb / *rounds + *eps)
+	test := make([]int, *reqsNb + *eps)
 	for i := 0; i < len(rarray); i++ {
 		r := rand.Intn(N)
 		rarray[i] = r
-		if i < *reqsNb / *rounds {
+		if i < *reqsNb {
 			perReplicaCount[r]++
 		}
 
@@ -135,9 +144,11 @@ func main() {
 	before_total := time.Now()
 	before_total_nano := before_total.UnixNano()
 
+  timestamps = make(map[int32]int64)
+
 	for j := 0; j < *rounds; j++ {
 
-		n := *reqsNb / *rounds
+		n := *reqsNb
 
 		if *check {
 			rsp = make([]bool, n)
@@ -181,7 +192,12 @@ func main() {
 					writers[rep].Flush()
 				}
 			}
-			//fmt.Println("Sent", id)
+		    start := time.Now() 
+        start_nano := start.UnixNano()
+        timestamps[id] = start_nano
+   	
+      
+      //fmt.Println("Sent", id)
 			id++
 			if i%100 == 0 {
 				for i := 0; i < N; i++ {
@@ -205,7 +221,7 @@ func main() {
 
 		after := time.Now()
 
-		fmt.Printf("Round took %v\n", after.Sub(before))
+		//fmt.Printf("Round took %v\n", after.Sub(before))
 
 		if *check {
 			for j := 0; j < n; j++ {
@@ -236,6 +252,9 @@ func main() {
 		s += succ
 	}
 
+  temp.Close()
+  os.Stdout = old
+
 	fmt.Printf("Successful: %d\n", s)
 	fmt.Printf("Avg Latency per req: %v ms\n", float64(after_total_nano - before_total_nano)/float64(1000*1000*s))
 	fmt.Printf("Throughput: %v reqs/s\n", float64(s*1000*1000*1000)/float64(after_total_nano - before_total_nano))
@@ -260,7 +279,12 @@ func waitReplies(readers []*bufio.Reader, leader int, n int, done chan bool) {
 			continue
 		}
 		//fmt.Println(reply.Value)
-		if *check {
+	    end := time.Now()
+      end_nano := end.UnixNano()
+      idx := reply.CommandId
+      fmt.Printf("#req%v %v %v %v\n", idx, timestamps[idx]/(1000.0*1000), end_nano/(1000.0*1000), 0) 
+	
+    if *check {
 			if rsp[reply.CommandId] {
 				fmt.Println("Duplicate reply", reply.CommandId)
 			}

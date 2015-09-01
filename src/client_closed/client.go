@@ -21,6 +21,9 @@ var masterAddr *string = flag.String("maddr", "", "Master address. Defaults to l
 var masterPort *int = flag.Int("mport", 7087, "Master port.  Defaults to 7077.")
 var numClients *int = flag.Int("q", 1, "Number of client threads.  Defaults to 1.")
 //var duration *int = flag.Int("d", 60, "Duration of the experiment in seconds.  Defaults to 60.")
+var clientIdStartIdx *int = flag.Int("clientIdStartIdx", 0, "Starting index for the client. Defaults to 0.")
+var numOutstandingReqs *int = flag.Int("numOutstandingReqs", 1, "Number of outstanding requests. Defaults to 1.")
+
 
 func main() {
 	flag.Parse()
@@ -31,9 +34,9 @@ func main() {
   temp, _ := os.Create(fname)
   os.Stdout = temp
 
-	runtime.GOMAXPROCS(*numClients+1)
+  runtime.GOMAXPROCS(*numClients+1)
 	for i:=0; i<*numClients; i++ {
-    go run_one_client(i, *numClients, *masterAddr, *masterPort)
+    go run_one_client(*clientIdStartIdx + i, *numClients, *masterAddr, *masterPort)
   }
 
   time.Sleep(60 * time.Second)
@@ -86,50 +89,69 @@ func run_one_client(clientId int, numClients int, masterAddr string, masterPort 
 	}
 	leader = reply.LeaderId
 	log.Printf("The leader is replica %d\n", leader)
-
+  
   r := rand.Intn(N)
+  numReqsatOnce := *numOutstandingReqs;
 	rarray[0] = r
   karray[0] = 42
   put[0] = true
- 
   
   var id int32 = int32(clientId);
 	args := genericsmrproto.Propose{id, state.Command{state.PUT, 0, 0}, 0}
 
 	reqReply := new(genericsmrproto.ProposeReplyTS)
-	
-  for {
-    args.CommandId = id
-		args.Command.Op = state.PUT
-    args.Command.K = state.Key(karray[0])
-		args.Command.V = state.Value(0)
-		writers[leader].WriteByte(genericsmrproto.PROPOSE)
-		args.Marshal(writers[leader])
-		id = id + int32(numClients);
-    writers[leader].Flush()
-    
-	  start := time.Now()
-	  start_nano := start.UnixNano()
-    
-    rerr := false 
+  
+  var timestamps map[int32]int64
+  timestamps = make(map[int32]int64)
 
-    if err := reqReply.Unmarshal(readers[leader]); err != nil {
-			fmt.Println("Error when reading:", err)
-			rerr = true
-			continue
-		}
+  clientBatchSize := 100
+
+  for {
+    for i := 0; i < numReqsatOnce; i++ { 
+        args.CommandId = id
+        args.Command.Op = state.PUT
+        args.Command.K = state.Key(karray[0])
+        args.Command.V = state.Value(0)
+        writers[leader].WriteByte(genericsmrproto.PROPOSE)
+        args.Marshal(writers[leader])
+
+        start := time.Now() 
+        start_nano := start.UnixNano()
+        timestamps[id] = start_nano
+        //fmt.Printf("Sending request with id %v\n", id)
+        
+        if (i % clientBatchSize == 0) {
+          writers[leader].Flush()
+        }
+        id = id + int32(numClients);
+    }
+    
+    writers[leader].Flush()
+
+    for i := 0; i < numReqsatOnce; i++ {
+
+	    rerr := false 
+
+      if err := reqReply.Unmarshal(readers[leader]); err != nil {
+			  fmt.Println("Error when reading:", err)
+			  rerr = true
+			  continue
+		  }
 		
-    if rerr {
-			reply := new(masterproto.GetLeaderReply)
-			master.Call("Master.GetLeader", new(masterproto.GetLeaderArgs), reply)
-			leader = reply.LeaderId
-			log.Printf("New leader is replica %d\n", leader)
-		} else {
-      end := time.Now()
-      end_nano := end.UnixNano()
-      fmt.Printf("#req%v %v %v %v\n", id, start_nano/(1000.0*1000), end_nano/(1000.0*1000), clientId) 
+      if rerr {
+			  reply := new(masterproto.GetLeaderReply)
+			  master.Call("Master.GetLeader", new(masterproto.GetLeaderArgs), reply)
+			  leader = reply.LeaderId
+			  log.Printf("New leader is replica %d\n", leader)
+		  } else {
+        end := time.Now()
+        end_nano := end.UnixNano()
+        idx := reqReply.CommandId
+        fmt.Printf("#req%v %v %v %v\n", idx, timestamps[idx]/(1000.0*1000), end_nano/(1000.0*1000), clientId) 
+      }
     }
   
+    numReqsatOnce = clientBatchSize
   }
 
 	for _, client := range servers {

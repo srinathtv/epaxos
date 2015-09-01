@@ -157,7 +157,7 @@ var clockChan chan bool
 
 func (r *Replica) clock() {
 	for !r.Shutdown {
-		time.Sleep(1000 * 1000 * 5)
+		time.Sleep(1000 * 1000 * 5) 
 		clockChan <- true
 	}
 }
@@ -399,6 +399,7 @@ func (r *Replica) handlePropose(propose *genericsmr.Propose) {
 	}
 
 	dlog.Printf("Batched %d\n", batchSize)
+  dlog.PrintCritical("Batched %d", batchSize)
 
 	cmds := make([]state.Command, batchSize)
 	proposals := make([]*genericsmr.Propose, batchSize)

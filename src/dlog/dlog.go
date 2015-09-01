@@ -17,3 +17,10 @@ func Println(v ...interface{}) {
 	}
 	log.Println(v...)
 }
+
+func PrintCritical(format string, v ...interface{}) {
+	if !DLOG {
+		return
+	}
+	log.Printf(format, v...)
+}
